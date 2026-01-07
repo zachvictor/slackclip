@@ -1,79 +1,89 @@
-# SlackClipper
+# slackclip
+
 Copy the contents of a Slack thread.
 
 ---
 
-# Description
+## Description
 
-Great conversations happen in Slack. But once the conversation is over, how do you use what you've learned? You could rely on your memory, so your precious insights are as easy to find as your car keys. Or you could extract the content and store it in your favourite knowledge-management system, like Notion, Confluence, Obsidian or JIRA.
+`slackclip` extracts a Slack thread, formats it as Markdown, and copies it to the clipboard.
 
-Unfortunately, when it comes to sharing data, Slack is pretty stubborn. Simply highlighting the text of a thread and copying it results in mostly garbage. If all your Slack administrators are similarly motivated, they might have installed third-party apps that tie into a corporate workflow.
+**This project is not endorsed or authorized in any way by Slack Technologies LLC.**
 
-So what if you just want the text of a Slack thread your way? You need `slackclipper`.
+## Installation
 
-`slackclipper` uses your personal Slack account to copy the text you want in the format you prefer. Want to add a discussion to a JIRA issue? Store some golden knowledge in Obsidian? Reference some colleagues in your Notion? `slackclipper` enables it all. Simply provide it the thread you want to clip and it will return the content, formatted ready for its new life.
+Requires Python 3.10+.
 
-By default the clipped content will be neatly formatted in Markdown. But the data is yours! Customise the format, or even export to any format with an API. Prefer PDF, or Google Docs or even dictated audio? Go for it!
-
-***This project is not endorsed or authorised in any way by Slack Technologies LLC.***
-
-# Installation
-
-**Note:** requires Python 3.11 or earlier! This is a limitation of the `leveldb` package, which is used by the `slacktokens` dependency. The restriction is now enforced by the packaging, but pip and friends provide confusing error messages like "these package versions have conflicting dependencies.
-
-With a compatible version of Python installed, just run:
-
-    pip install slackclipper
-
-This will install the `slackclipper` library for advanced use within Python, but also installs a convenience executable by the same name, so you can run it directly from the command line.
-
-# Usage
-
-1. Copy the link to the thread in Slack.
-![Screenshot of "Copy link" in Slack](img/screenshot_copy-link-in-Slack.png)
-2. Run `slackclipper` in your Terminal.
-![Screencast of "slackclipper" in Terminal](img/screencast.gif)
-3. Paste the result into the destination of your choice.
-![Screenshot of content pasted into MacDown](img/screenshot_paste-into-MacDown.png)
-
-## Extracting Slack Credentials
-
-When `slackclipper` is run for the first time, it will attempt to extract your Slack credentials using `slacktokens`. You may be prompted for your password.
-
-If extraction is successful, these credentials will be stored (in `~/.config/slackclipper/`) for future use. To replace the store with freshly extracted credentials, run `slackclipper` with the `-u` or `-update-credentials` flag.
-
-## Support for non-App Store Slack on MacOS
-
-Support for when Slack is directly downloaded and installed, instead of installed through the Mac App Store, is broken in the current release version of the dependency `pycookiecheat`. However the fix has been merged into the repository. To apply it, you can do something like:
-
-```
-# Download the current version of the source file
-curl -L https://raw.githubusercontent.com/n8henrie/pycookiecheat/refs/heads/master/src/pycookiecheat/chrome.py -o chrome.py
-
-# Get the location of the pycookiecheat package on your computer
-# Replace `python3` with the python you used to install slackclipper. Eg `python3.11`.
-PACKAGE_PATH=$(python3 -c "import pycookiecheat, os; print(os.path.dirname(pycookiecheat.__file__))")
-
-# Dry run to make sure the replacement is good. You should see a diff like that in the commit:
-# https://github.com/n8henrie/pycookiecheat/commit/36f72082e9a6a77cf84c5000150e7f779d73b14d
-diff chrome.py "$PACKAGE_PATH/chrome.py"
-
-# Do the replacement
-mv chrome.py "$PACKAGE_PATH/chrome.py"
+```bash
+pip install slackclip
 ```
 
----
+Or with [uv](https://docs.astral.sh/uv/):
 
+```bash
+uv pip install slackclip
+```
 
-# Shortcomings
+## Usage
 
-- `slackclipper` relies on `slacktokens` to extract your Slack credentials. `slacktokens` currently only supports macOS and Linux.
-	- If credentials extraction fails for this or any other reason, credentials can be provided manually using Python like so:
+```bash
+slackclip <slack-thread-url>
+```
 
-		```python
-		>>> from slackclipper import update_credentials_store
-		>>> update_credentials_store(creds) # where "creds" is in the format produced by slacktokens
-		```
-- Multimedia won’t come through well.
-- Reactions aren't included.
-- Only exports in a fixed MarkDown format for now.
+By default, output is copied to the clipboard.
+
+### Save to file
+
+```bash
+# Auto-generate filename (slack-thread-YYYYMMDD-HHMMSS.md)
+slackclip <url> -f
+
+# Specify filename
+slackclip <url> -f output.md
+```
+
+### Pipe mode
+
+Read URL from stdin, write content to stdout:
+
+```bash
+echo "<url>" | slackclip -p
+```
+
+## First-time setup
+
+On first run, `slackclip` will prompt you for your Slack credentials:
+
+1. Open Slack in your browser and log in
+2. Open Developer Tools (F12 or Cmd+Option+I)
+3. Go to **Console** tab and run:
+   ```javascript
+   JSON.parse(localStorage.localConfig_v2).teams
+   ```
+4. Find your workspace and copy the `token` value (starts with `xoxc-`)
+5. Go to **Application** tab → **Cookies** → `https://app.slack.com`
+6. Find the cookie named `d` and copy its value
+
+Credentials are saved to `~/.config/slackclip/credentials` for future use. If they expire, you'll be prompted to enter new ones.
+
+## Output format
+
+Messages are formatted as Markdown:
+
+```markdown
+**Jane Doe, at 2024-01-15 14:30:00:**
+This is the first message in the thread.
+
+**John Smith, at 2024-01-15 14:32:00:**
+This is a reply with a [link](https://example.com) and some **bold text**.
+```
+
+## Shortcomings
+
+- Multimedia (images, files) won't come through
+- Reactions aren't included
+- Only outputs Markdown format
+
+## Credits
+
+Originally created by [Heath Raftery](https://github.com/hraftery/slackclipper).
